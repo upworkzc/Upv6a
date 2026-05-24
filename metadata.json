@@ -1,0 +1,12 @@
+{
+  "name": "Upworkzc_v6a",
+  "description": "A professional counseling platform featuring automated booking, AI-powered help chat, and appointment management for mental wellness.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
