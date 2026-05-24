@@ -1,10 +1,7 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, Globe, User, Users, HeartHandshake, Heart, Compass, Building2, Palette, GraduationCap } from 'lucide-react';
 import { SERVICES, TESTIMONIALS, VALUES, APPROACH_STEPS, TARGET_GROUPS, CORPORATE_CLIENTS, FAQS, PRIVACY_POLICY, TERMS_AND_CONDITIONS } from './constants';
-import HCaptcha from '@hcaptcha/react-hcaptcha';
-
-const HCAPTCHA_SITEKEY = ((import.meta as any).env?.VITE_HCAPTCHA_SITEKEY as string) || '10000000-ffff-ffff-ffff-ffffffffffff';
 
 const serviceIconMap: Record<string, React.ComponentType<any>> = {
   '👤': User,
@@ -46,9 +43,6 @@ const App: React.FC = () => {
 
   const [contactSessionType, setContactSessionType] = useState('Introductory Enquiry Session (15 Min - Complimentary)');
   const [contactServiceInterested, setContactServiceInterested] = useState('');
-  
-  const [contactCaptchaToken, setContactCaptchaToken] = useState<string>('');
-  const contactCaptchaRef = useRef<any>(null);
 
   const handleNavToContact = (sessionTypeVal?: string, serviceVal?: string) => {
     if (sessionTypeVal) {
@@ -77,7 +71,7 @@ const App: React.FC = () => {
     }
   }, [activeSection, userRole]);
 
-  const handleBook = async (slotId: string, name: string, email: string, sessionType: string, serviceInterested: string, captchaToken?: string) => {
+  const handleBook = async (slotId: string, name: string, email: string, sessionType: string, serviceInterested: string) => {
     setSlots(prev => prev.map(slot => 
       slot.id === slotId 
       ? { ...slot, isBooked: true, bookedBy: name, bookedEmail: email, sessionType, serviceInterested } 
@@ -98,10 +92,6 @@ const App: React.FC = () => {
     formData.append("appointment_date", dateStr);
     formData.append("appointment_time", timeStr);
     formData.append("message", `New session booked!\n\nName: ${name}\nEmail: ${email}\nSession Type: ${sessionType}\nService of Interest/Goal: ${serviceInterested}\nDate: ${dateStr}\nTime: ${timeStr}`);
-    
-    if (captchaToken) {
-      formData.append("h-captcha-response", captchaToken);
-    }
 
     try {
       await fetch("https://api.web3forms.com/submit", {
@@ -703,12 +693,6 @@ const App: React.FC = () => {
               ) : (
                 <form className="space-y-8 relative z-10" onSubmit={async (e) => {
                   e.preventDefault();
-                  
-                  if (!contactCaptchaToken) {
-                    setContactResult('Please verify that you are not a robot.');
-                    return;
-                  }
-
                   setIsSubmittingContact(true);
                   setContactResult('Sending...');
 
@@ -721,7 +705,6 @@ const App: React.FC = () => {
                   const sessionTypeVal = (form.elements.namedItem('sessionType') as HTMLSelectElement).value;
                   formData.append("name", nameVal); // Provide standard Web3Forms name parameter
                   formData.append("subject", `New Enquiry from ${nameVal} - ${sessionTypeVal} (Service: ${serviceVal})`);
-                  formData.append("h-captcha-response", contactCaptchaToken);
 
                   try {
                     const response = await fetch("https://api.web3forms.com/submit", {
@@ -733,19 +716,13 @@ const App: React.FC = () => {
                     if (data.success) {
                       setContactResult("Form Submitted Successfully");
                       setIsMessageSent(true);
-                      setContactCaptchaToken('');
-                      contactCaptchaRef.current?.resetCaptcha();
                       form.reset();
                     } else {
                       setContactResult(data.message || "Error submitting form. Please try again.");
-                      contactCaptchaRef.current?.resetCaptcha();
-                      setContactCaptchaToken('');
                     }
                   } catch (err) {
                     console.error("Web3Forms error:", err);
                     setContactResult("Network error. Please check your connection and try again.");
-                    contactCaptchaRef.current?.resetCaptcha();
-                    setContactCaptchaToken('');
                   } finally {
                     setIsSubmittingContact(false);
                   }
@@ -762,7 +739,7 @@ const App: React.FC = () => {
                       <label className="block text-sm font-black uppercase tracking-[0.3em] text-brand-navy/40 mb-3 ml-2">Service interested in</label>
                       <div className="relative">
                         <select 
-                           name="service" 
+                          name="service" 
                           required 
                           value={contactServiceInterested} 
                           onChange={(e) => setContactServiceInterested(e.target.value)}
@@ -823,18 +800,6 @@ const App: React.FC = () => {
                       <label className="block text-sm font-black uppercase tracking-[0.3em] text-brand-navy/40 mb-3 ml-2">How can we help?</label>
                       <textarea name="message" required rows={5} className="w-full p-5 bg-brand-bg/50 border border-brand-navy/30 rounded-2xl focus:ring-4 focus:ring-brand-blue/10 focus:bg-brand-tan/30 outline-none font-bold transition-all" placeholder="Your message here..."></textarea>
                   </div>
-                  
-                  {/* hCaptcha Widget */}
-                  <div className="flex justify-center my-6 relative z-30">
-                    <HCaptcha
-                      id="contact-captcha"
-                      ref={contactCaptchaRef}
-                      sitekey={HCAPTCHA_SITEKEY}
-                      onVerify={(token) => setContactCaptchaToken(token)}
-                      onExpire={() => setContactCaptchaToken('')}
-                    />
-                  </div>
-
                   {contactResult && !isMessageSent && (
                     <div className={`p-4 rounded-xl text-center text-xs font-bold uppercase tracking-wider ${
                       contactResult.includes('Successfully') 

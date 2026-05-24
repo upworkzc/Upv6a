@@ -1,13 +1,10 @@
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { BookingSlot } from '../types';
-import HCaptcha from '@hcaptcha/react-hcaptcha';
-
-const HCAPTCHA_SITEKEY = ((import.meta as any).env?.VITE_HCAPTCHA_SITEKEY as string) || '10000000-ffff-ffff-ffff-ffffffffffff';
 
 interface BookingCalendarProps {
   slots: BookingSlot[];
-  onBook: (slotId: string, name: string, email: string, sessionType: string, serviceInterested: string, captchaToken?: string) => void;
+  onBook: (slotId: string, name: string, email: string, sessionType: string, serviceInterested: string) => void;
   isAdmin?: boolean;
   onAddSlot?: (date: string, time: string) => void;
   onRemoveSlot?: (slotId: string) => void;
@@ -26,9 +23,6 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
   const [bookingEmail, setBookingEmail] = useState('');
   const [sessionType, setSessionType] = useState('Introductory Enquiry Session (15 Min - Complimentary)');
   const [serviceInterested, setServiceInterested] = useState('Individual Coaching');
-  const [bookingCaptchaToken, setBookingCaptchaToken] = useState<string>('');
-  const [errorMsg, setErrorMsg] = useState<string>('');
-  const bookingCaptchaRef = useRef<any>(null);
 
   const dates = useMemo(() => {
     const d = [];
@@ -45,20 +39,13 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
 
   const handleBookSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!bookingCaptchaToken) {
-      setErrorMsg('Please verify that you are not a robot.');
-      return;
-    }
-    setErrorMsg('');
     if (showBookingModal && bookingName && bookingEmail) {
-      onBook(showBookingModal, bookingName, bookingEmail, sessionType, serviceInterested, bookingCaptchaToken);
+      onBook(showBookingModal, bookingName, bookingEmail, sessionType, serviceInterested);
       setShowBookingModal(null);
       setBookingName('');
       setBookingEmail('');
       setSessionType('Introductory Enquiry Session (15 Min - Complimentary)');
       setServiceInterested('Individual Coaching');
-      setBookingCaptchaToken('');
-      bookingCaptchaRef.current?.resetCaptcha();
     }
   };
 
@@ -317,35 +304,10 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
                     <span><strong>Friendly reminder:</strong> Any session cancellations or rescheduling made with less than 24 hours' notice will incur a charge of the full fee and is non-refundable. We will send an email reminder to you 24 hours before your session to help you stay on track.</span>
                 </div>
               </div>
-
-              {/* hCaptcha Verification */}
-              <div className="flex flex-col items-center justify-center my-4 space-y-3 shrink-0">
-                <HCaptcha
-                  id="booking-captcha"
-                  ref={bookingCaptchaRef}
-                  sitekey={HCAPTCHA_SITEKEY}
-                  onVerify={(token) => {
-                    setBookingCaptchaToken(token);
-                    setErrorMsg('');
-                  }}
-                  onExpire={() => setBookingCaptchaToken('')}
-                />
-                {errorMsg && (
-                  <p className="text-rose-600 text-[10px] font-black uppercase tracking-wider bg-rose-50 border border-rose-100 px-4 py-2 rounded-xl text-center">
-                    {errorMsg}
-                  </p>
-                )}
-              </div>
-
               <div className="flex gap-4 pt-4 shrink-0">
                 <button 
                   type="button"
-                  onClick={() => {
-                    setShowBookingModal(null);
-                    setBookingCaptchaToken('');
-                    setErrorMsg('');
-                    bookingCaptchaRef.current?.resetCaptcha();
-                  }}
+                  onClick={() => setShowBookingModal(null)}
                   className="flex-1 py-4 text-brand-navy/40 font-black uppercase tracking-[0.2em] text-[10px] hover:text-brand-navy transition-all"
                 >
                   Go Back
